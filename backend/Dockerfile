@@ -4,17 +4,19 @@ FROM node:20
 # Set working directory
 WORKDIR /app
 
-# Copy package files first
+# Install dependencies first (better cache usage)
 COPY package*.json ./
-
-# Install dependencies (including dev dependencies for live reload)
 RUN npm install
 
-# Copy the rest of the code
+# Copy remaining source code
 COPY . .
+
+# Enable proper file watching inside Docker
+ENV CHOKIDAR_USEPOLLING=true
+ENV CHOKIDAR_INTERVAL=200
 
 # Expose backend port
 EXPOSE 8000
 
-# Run in development mode with live reload
+# Run dev mode with nodemon + ts-node/esm
 CMD ["npm", "run", "dev"]
