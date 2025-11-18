@@ -1,11 +1,11 @@
 {
-  "type": "module",               
+  "type": "module",
   "scripts": {
-    "dev": "nodemon --loader ts-node/esm src/index.ts",
-    "build": "tsc"                 
+    "dev": "nodemon --watch src --ext ts --exec 'ts-node-esm src/index.ts'",
+    "build": "tsc"
   },
   "devDependencies": {
-    "nodemon": "^3.1.0",          
+    "nodemon": "^3.1.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
     "@types/node": "^24.10.1",
