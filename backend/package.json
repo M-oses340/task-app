@@ -1,22 +1,19 @@
 {
-  "name": "backend",
-  "version": "1.0.0",
-  "type": "module",
+  "type": "module",               
   "scripts": {
-    "dev": "nodemon src/index.ts",
-    "build": "tsc"
-  },
-  "dependencies": {
-    "drizzle-orm": "^0.44.7",
-    "express": "^5.1.0",
-    "pg": "^8.16.3"
+    "dev": "nodemon --loader ts-node/esm src/index.ts",
+    "build": "tsc"                 
   },
   "devDependencies": {
-    "@types/express": "^5.0.5",
-    "@types/node": "^24.10.1",
-    "@types/pg": "^8.15.6",
-    "nodemon": "^3.1.0",
+    "nodemon": "^3.1.0",          
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "@types/node": "^24.10.1",
+    "@types/express": "^5.0.5"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "pg": "^8.16.3",
+    "drizzle-orm": "^0.44.7"
   }
 }
