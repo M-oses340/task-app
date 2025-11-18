@@ -7,6 +7,8 @@ services:
     environment:
       - PORT=8000
       - DATABASE_URL=postgresql://postgres:test123@db:5432/mydb
+    depends_on:
+      - db
     
   db:
     image:  postgres:15
