@@ -9,9 +9,9 @@ class TaskModel {
   final String title;
   final Color color;
   final String description;
-  final DateTime createdAt; // UTC
-  final DateTime updatedAt; // UTC
-  final DateTime dueAt;     // UTC
+  final DateTime createdAt; // Stored as UTC
+  final DateTime updatedAt; // Stored as UTC
+  final DateTime dueAt;     // Stored as UTC
   final int isSynced;
 
   TaskModel({
@@ -50,7 +50,7 @@ class TaskModel {
     );
   }
 
-  // Send UTC to backend
+  // Always send timestamps as UTC with 'Z'
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'id': id,
@@ -65,16 +65,28 @@ class TaskModel {
     };
   }
 
-  // Keep UTC internally
+  // Helper: ensure string is parsed as UTC
+  static DateTime _parseUtc(String value) {
+    if (value.isEmpty) return DateTime.now().toUtc();
+
+    // If backend forgot to append Z, force UTC interpretation
+    if (!value.endsWith('Z') && !value.toUpperCase().contains('+')) {
+      return DateTime.parse("${value}Z").toUtc();
+    }
+
+    return DateTime.parse(value).toUtc();
+  }
+
+  // Always keep internal values in UTC
   factory TaskModel.fromMap(Map<String, dynamic> map) {
     return TaskModel(
       id: map['id'] ?? '',
       uid: map['uid'] ?? '',
       title: map['title'] ?? '',
       description: map['description'] ?? '',
-      createdAt: DateTime.parse(map['createdAt']),
-      updatedAt: DateTime.parse(map['updatedAt']),
-      dueAt: DateTime.parse(map['dueAt']),
+      createdAt: _parseUtc(map['createdAt']),
+      updatedAt: _parseUtc(map['updatedAt']),
+      dueAt: _parseUtc(map['dueAt']),
       color: hexToRgb(map['hexColor']),
       isSynced: map['isSynced'] ?? 1,
     );
@@ -83,16 +95,16 @@ class TaskModel {
   String toJson() => json.encode(toMap());
 
   factory TaskModel.fromJson(String source) =>
-      TaskModel.fromMap(json.decode(source) as Map<String, dynamic>);
+      TaskModel.fromMap(json.decode(source));
 
-  // UI Helper: convert UTC to local
+  // UI Helpers: Convert UTC → Local for display
   DateTime get localCreatedAt => createdAt.toLocal();
   DateTime get localUpdatedAt => updatedAt.toLocal();
   DateTime get localDueAt => dueAt.toLocal();
 
   @override
   String toString() {
-    return 'TaskModel(id: $id, uid: $uid, title: $title, description: $description, createdAt: $createdAt, updatedAt: $updatedAt, dueAt: $dueAt, color: $color)';
+    return 'TaskModel(id: $id, uid: $uid, title: $title, description: $description, createdAt: $createdAt, updatedAt: $updatedAt, dueAt: $dueAt, color: $color, isSynced: $isSynced)';
   }
 
   @override

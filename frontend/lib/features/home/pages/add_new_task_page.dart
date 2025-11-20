@@ -20,7 +20,10 @@ class _AddNewTaskPageState extends State<AddNewTaskPage> {
   final titleController = TextEditingController();
   final descriptionController = TextEditingController();
   final formKey = GlobalKey<FormState>();
-  DateTime selectedDate = DateTime.now();
+
+  // Keep a single DateTime (local) for both date and time selection
+  DateTime selectedDateTime = DateTime.now();
+
   Color selectedColor = const Color.fromRGBO(246, 222, 194, 1);
 
   @override
@@ -30,19 +33,63 @@ class _AddNewTaskPageState extends State<AddNewTaskPage> {
     super.dispose();
   }
 
+  // Combines the selected local date & time, then converts to UTC before sending
   void createNewTask() async {
     if (formKey.currentState!.validate()) {
       final user = context.read<AuthCubit>().state as AuthLoggedIn;
+
+      // selectedDateTime is in local time; convert to UTC for backend
+      final utcDueAt = selectedDateTime.toUtc();
+
       await context.read<TasksCubit>().createNewTask(
         uid: user.user.id,
         title: titleController.text.trim(),
         description: descriptionController.text.trim(),
         color: selectedColor,
         token: user.user.token,
-        dueAt: selectedDate,
+        dueAt: utcDueAt,
       );
     }
   }
+
+  // Show date picker then time picker, and update selectedDateTime (local)
+  Future<void> _pickDateTime() async {
+    final now = DateTime.now();
+
+    final newDate = await showDatePicker(
+      context: context,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: DateTime(now.year + 5),
+      initialDate: selectedDateTime,
+    );
+
+    if (newDate == null) return;
+
+    final initialTime = TimeOfDay.fromDateTime(selectedDateTime);
+
+    final newTime = await showTimePicker(
+      context: context,
+      initialTime: initialTime,
+    );
+
+    // If user cancels time picker, keep previous time
+    final finalTime = newTime ?? initialTime;
+
+    final combined = DateTime(
+      newDate.year,
+      newDate.month,
+      newDate.day,
+      finalTime.hour,
+      finalTime.minute,
+    );
+
+    setState(() {
+      selectedDateTime = combined;
+    });
+  }
+
+  String get _formattedDateTime =>
+      DateFormat('MMM d, y — h:mm a').format(selectedDateTime);
 
   @override
   Widget build(BuildContext context) {
@@ -51,24 +98,13 @@ class _AddNewTaskPageState extends State<AddNewTaskPage> {
         title: const Text('Add New Task'),
         actions: [
           GestureDetector(
-            onTap: () async {
-              final _selectedDate = await showDatePicker(
-                context: context,
-                firstDate: DateTime.now(),
-                lastDate: DateTime.now().add(const Duration(days: 90)),
-                initialDate: selectedDate,
-              );
-
-              if (_selectedDate != null) {
-                setState(() => selectedDate = _selectedDate);
-              }
-            },
+            onTap: _pickDateTime,
             child: Padding(
               padding: const EdgeInsets.all(12.0),
               child: Center(
                 child: Text(
-                  DateFormat("MM-d-y").format(selectedDate),
-                  style: const TextStyle(fontSize: 16),
+                  _formattedDateTime,
+                  style: const TextStyle(fontSize: 14),
                 ),
               ),
             ),
