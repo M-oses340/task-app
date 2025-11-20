@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:frontend/core/constants/constants.dart';
 import 'package:frontend/core/constants/utils.dart';
 import 'package:frontend/features/home/repository/task_local_repository.dart';
@@ -24,38 +23,38 @@ class TaskRemoteRepository {
             'Content-Type': 'application/json',
             'x-auth-token': token,
           },
-          body: jsonEncode(
-            {
-              'title': title,
-              'description': description,
-              'hexColor': hexColor,
-              'dueAt': dueAt.toIso8601String(),
-            },
-          ));
+          body: jsonEncode({
+            'title': title,
+            'description': description,
+            'hexColor': hexColor,
+            'dueAt': dueAt.toIso8601String(),
+          }));
 
       if (res.statusCode != 201) {
-        throw jsonDecode(res.body)['error'];
+        print('Error response: ${res.body}');
+        throw Exception('Failed to create task');
       }
 
-      return TaskModel.fromJson(res.body);
+      final Map<String, dynamic> taskJson = jsonDecode(res.body);
+      final taskModel = TaskModel.fromMap(taskJson);
+
+      await taskLocalRepository.insertTask(taskModel);
+      return taskModel;
     } catch (e) {
-      try {
-        final taskModel = TaskModel(
-          id: const Uuid().v6(),
-          uid: uid,
-          title: title,
-          description: description,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-          dueAt: dueAt,
-          color: hexToRgb(hexColor),
-          isSynced: 0,
-        );
-        await taskLocalRepository.insertTask(taskModel);
-        return taskModel;
-      } catch (e) {
-        rethrow;
-      }
+      // fallback: save locally if network fails
+      final taskModel = TaskModel(
+        id: const Uuid().v6(),
+        uid: uid,
+        title: title,
+        description: description,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        dueAt: dueAt,
+        color: hexToRgb(hexColor),
+        isSynced: 0,
+      );
+      await taskLocalRepository.insertTask(taskModel);
+      return taskModel;
     }
   }
 
@@ -70,24 +69,20 @@ class TaskRemoteRepository {
       );
 
       if (res.statusCode != 200) {
-        throw jsonDecode(res.body)['error'];
+        print('Error response: ${res.body}');
+        throw Exception('Failed to fetch tasks');
       }
 
-      final listOfTasks = jsonDecode(res.body);
-      List<TaskModel> tasksList = [];
-
-      for (var elem in listOfTasks) {
-        tasksList.add(TaskModel.fromMap(elem));
-      }
+      final List<dynamic> listOfTasks = jsonDecode(res.body);
+      final tasksList =
+      listOfTasks.map((e) => TaskModel.fromMap(e)).toList();
 
       await taskLocalRepository.insertTasks(tasksList);
 
       return tasksList;
     } catch (e) {
       final tasks = await taskLocalRepository.getTasks();
-      if (tasks.isNotEmpty) {
-        return tasks;
-      }
+      if (tasks.isNotEmpty) return tasks;
       rethrow;
     }
   }
@@ -97,10 +92,8 @@ class TaskRemoteRepository {
     required List<TaskModel> tasks,
   }) async {
     try {
-      final taskListInMap = [];
-      for (final task in tasks) {
-        taskListInMap.add(task.toMap());
-      }
+      final taskListInMap = tasks.map((task) => task.toMap()).toList();
+
       final res = await http.post(
         Uri.parse("${Constants.backendUri}/tasks/sync"),
         headers: {
@@ -111,12 +104,13 @@ class TaskRemoteRepository {
       );
 
       if (res.statusCode != 201) {
-        throw jsonDecode(res.body)['error'];
+        print('Error response from sync: ${res.body}');
+        throw Exception('Failed to sync tasks');
       }
 
       return true;
     } catch (e) {
-      print(e);
+      print('Sync failed: $e');
       return false;
     }
   }
