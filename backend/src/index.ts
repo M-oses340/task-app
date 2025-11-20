@@ -7,7 +7,7 @@ app.use(express.json());
 
 // Mount routers
 app.use("/auth", authRouter);
-app.use("/tasks", taskRouter);  // <--- THIS WAS MISSING
+app.use("/tasks", taskRouter);
 
 app.get("/", (req, res) => {
   res.send("Welcome to my app!!!!!!");
