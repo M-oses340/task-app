@@ -1,4 +1,3 @@
-// ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:convert';
 
 class UserModel {
@@ -8,6 +7,7 @@ class UserModel {
   final String token;
   final DateTime createdAt;
   final DateTime updatedAt;
+
   UserModel({
     required this.id,
     required this.email,
@@ -35,8 +35,26 @@ class UserModel {
     );
   }
 
+  // ------------------------------------------------------
+  // SAFE date parser
+  // ------------------------------------------------------
+  static DateTime _parseDate(dynamic value) {
+    if (value == null) return DateTime.now();
+
+    if (value is int) {
+      // timestamp
+      return DateTime.fromMillisecondsSinceEpoch(value);
+    }
+
+    if (value is String) {
+      return DateTime.tryParse(value) ?? DateTime.now();
+    }
+
+    return DateTime.now();
+  }
+
   Map<String, dynamic> toMap() {
-    return <String, dynamic>{
+    return {
       'id': id,
       'email': email,
       'name': name,
@@ -52,15 +70,17 @@ class UserModel {
       email: map['email'] ?? '',
       name: map['name'] ?? '',
       token: map['token'] ?? '',
-      createdAt: DateTime.parse(map['createdAt']),
-      updatedAt: DateTime.parse(map['updatedAt']),
+      createdAt: _parseDate(map['createdAt'] ?? map['created_at']),
+      updatedAt: _parseDate(map['updatedAt'] ?? map['updated_at']),
     );
   }
 
+  // NOTICE:
+  // fromJson ONLY accepts a STRING — safe & intentional
   String toJson() => json.encode(toMap());
 
   factory UserModel.fromJson(String source) =>
-      UserModel.fromMap(json.decode(source) as Map<String, dynamic>);
+      UserModel.fromMap(json.decode(source));
 
   @override
   String toString() {
