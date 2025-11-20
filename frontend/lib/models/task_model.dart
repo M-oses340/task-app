@@ -9,10 +9,11 @@ class TaskModel {
   final String title;
   final Color color;
   final String description;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-  final DateTime dueAt;
+  final DateTime createdAt; // UTC
+  final DateTime updatedAt; // UTC
+  final DateTime dueAt;     // UTC
   final int isSynced;
+
   TaskModel({
     required this.id,
     required this.uid,
@@ -49,20 +50,22 @@ class TaskModel {
     );
   }
 
+  // Send UTC to backend
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'id': id,
       'uid': uid,
       'title': title,
       'description': description,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
-      'dueAt': dueAt.toIso8601String(),
+      'createdAt': createdAt.toUtc().toIso8601String(),
+      'updatedAt': updatedAt.toUtc().toIso8601String(),
+      'dueAt': dueAt.toUtc().toIso8601String(),
       'hexColor': rgbToHex(color),
       'isSynced': isSynced,
     };
   }
 
+  // Keep UTC internally
   factory TaskModel.fromMap(Map<String, dynamic> map) {
     return TaskModel(
       id: map['id'] ?? '',
@@ -81,6 +84,11 @@ class TaskModel {
 
   factory TaskModel.fromJson(String source) =>
       TaskModel.fromMap(json.decode(source) as Map<String, dynamic>);
+
+  // UI Helper: convert UTC to local
+  DateTime get localCreatedAt => createdAt.toLocal();
+  DateTime get localUpdatedAt => updatedAt.toLocal();
+  DateTime get localDueAt => dueAt.toLocal();
 
   @override
   String toString() {
