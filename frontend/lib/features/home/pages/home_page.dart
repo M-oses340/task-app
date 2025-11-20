@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -9,7 +11,6 @@ import 'package:frontend/features/home/pages/add_new_task_page.dart';
 import 'package:frontend/features/home/widgets/date_selector.dart';
 import 'package:frontend/features/home/widgets/task_card.dart';
 import 'package:intl/intl.dart';
-import 'dart:async';
 
 class HomePage extends StatefulWidget {
   static MaterialPageRoute route() => MaterialPageRoute(
@@ -24,6 +25,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   DateTime selectedDate = DateTime.now();
+
   late final StreamSubscription<List<ConnectivityResult>> _connectivitySub;
 
   @override
@@ -31,14 +33,18 @@ class _HomePageState extends State<HomePage> {
     super.initState();
 
     final user = context.read<AuthCubit>().state as AuthLoggedIn;
+
+    // Load tasks
     context.read<TasksCubit>().getAllTasks(token: user.user.token);
 
+    // Listen for connectivity changes
     _connectivitySub =
         Connectivity().onConnectivityChanged.listen((results) async {
           if (!mounted) return;
 
-          // results is List<ConnectivityResult>
+          // If WiFi becomes available, sync tasks
           if (results.contains(ConnectivityResult.wifi)) {
+            final user = context.read<AuthCubit>().state as AuthLoggedIn;
             await context.read<TasksCubit>().syncTasks(user.user.token);
           }
         });
@@ -76,7 +82,7 @@ class _HomePageState extends State<HomePage> {
 
           if (state is GetTasksSuccess) {
             final tasks = state.tasks.where((task) {
-              final due = task.dueAt.toLocal(); // ensure local time
+              final due = task.dueAt.toLocal();
               return due.year == selectedDate.year &&
                   due.month == selectedDate.month &&
                   due.day == selectedDate.day;
